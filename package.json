@@ -1,0 +1,27 @@
+{
+  "name": "heroku-server-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "source .variables && npm run dev",
+    "dev": "nodemon -e ts --dir src/ --exec \"npm start\"",
+    "server": "node src/index.js",
+    "build:ts": "tsc -p .",
+    "start": "npm run build:ts && npm run server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/algoliasearch": "^3.24.3",
+    "@types/express": "^4.0.39",
+    "@types/lodash": "^4.14.85",
+    "@types/mysql": "^2.15.1",
+    "algoliasearch": "^3.24.7",
+    "express": "^4.16.2",
+    "lodash": "^4.17.4",
+    "mysql": "^2.15.0",
+    "typescript": "^2.6.1"
+  }
+}
