@@ -1,7 +1,11 @@
 import * as express from "express";
 import * as bp from "body-parser";
 import { procedure } from "./db";
-import * as algoliasearch from "algoliasearch"
+import * as algoliasearch from "algoliasearch";
+import { createServer } from "http";
+import { Socket } from "net";
+import * as socket from 'socket.io';
+
 
 
 const client = algoliasearch("NGFATQMT4B", "3c9872f8338b96966a9dab158cc77e70");
@@ -11,8 +15,46 @@ const client = algoliasearch("NGFATQMT4B", "3c9872f8338b96966a9dab158cc77e70");
 const index = client.initIndex('FinalUsers');
 
 const app = express();
+const server = createServer(app);
+const io = socket.listen(server);
+
 app.use(bp.json());
 
+
+// SOCKET AND MESSAGING BULLSHIT
+
+io.on('connection', (socket) => {
+    console.log('user connected');
+
+    socket.on('disconnect', function(){
+        console.log('user disconnected');
+    });
+
+    socket.on('add-message', (message) => {
+        console.log(message)
+        procedure('spInsertMessage', [message.user_id, message.chat_id, message.message])
+        .then((pack)=> {
+            console.log("Inside whatever", pack)
+            io.emit('message', pack[0][0])
+        })
+    })
+})
+
+app.get("/api/chat/rooms/:id", (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    procedure("spGetChatroomsByUser", [+req.params.id] )
+    .then((chatrooms: any) => {
+        res.json(chatrooms[0])
+        console.log(chatrooms[0])
+    })
+})
+
+app.get("/api/chat/messages/:id", (req: express.Request, res: express.Response, next: express.NextFunction) =>{
+    procedure("spGetMessagesByChatroom", [+req.params.id])
+    .then((messages: any) => {
+        res.json(messages[0])
+        console.log(messages[0])
+    })
+})
 // USE TO GET USERS OR JOBS AND STORE THEM IN THE INDEX
 
 app.get('/', (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -104,6 +146,6 @@ app.post('/skills', (req: express.Request, res: express.Response, next: express.
     })
 })
 
-app.listen(3000, () => {
+server.listen(3000, () => {
     console.log("listening on 3000");
 })

@@ -4,11 +4,44 @@ const express = require("express");
 const bp = require("body-parser");
 const db_1 = require("./db");
 const algoliasearch = require("algoliasearch");
+const http_1 = require("http");
+const socket = require("socket.io");
 const client = algoliasearch("NGFATQMT4B", "3c9872f8338b96966a9dab158cc77e70");
 // CHANGE INDEX TO "FinalJobs" WHEN USING THESE FUNCTIONS FOR JOBS AND TO "FinalUsers" FOR USERS
 const index = client.initIndex('FinalUsers');
 const app = express();
+const server = http_1.createServer(app);
+const io = socket.listen(server);
 app.use(bp.json());
+// SOCKET AND MESSAGING BULLSHIT
+io.on('connection', (socket) => {
+    console.log('user connected');
+    socket.on('disconnect', function () {
+        console.log('user disconnected');
+    });
+    socket.on('add-message', (message) => {
+        console.log(message);
+        db_1.procedure('spInsertMessage', [message.user_id, message.chat_id, message.message])
+            .then((pack) => {
+            console.log("Inside whatever", pack);
+            io.emit('message', pack[0][0]);
+        });
+    });
+});
+app.get("/api/chat/rooms/:id", (req, res, next) => {
+    db_1.procedure("spGetChatroomsByUser", [+req.params.id])
+        .then((chatrooms) => {
+        res.json(chatrooms[0]);
+        console.log(chatrooms[0]);
+    });
+});
+app.get("/api/chat/messages/:id", (req, res, next) => {
+    db_1.procedure("spGetMessagesByChatroom", [+req.params.id])
+        .then((messages) => {
+        res.json(messages[0]);
+        console.log(messages[0]);
+    });
+});
 // USE TO GET USERS OR JOBS AND STORE THEM IN THE INDEX
 app.get('/', (req, res, next) => {
     db_1.procedure("spGetUsers")
@@ -82,6 +115,6 @@ app.post('/skills', (req, res, next) => {
         });
     });
 });
-app.listen(3000, () => {
+server.listen(3000, () => {
     console.log("listening on 3000");
 });
